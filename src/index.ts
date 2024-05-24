@@ -1,7 +1,7 @@
 import express from 'express';
 import { ApolloServer } from 'apollo-server-express';
 import typeDefs from './schemas/userSchema';
-import resolvers from './resolvers/userResolver';
+import resolvers from './resolvers/resolvers';
 import { getUserFromToken } from './utils/auth';
 import { SERVER_PORT } from './config';
 
@@ -11,10 +11,11 @@ const startServer = async () => {
   const server = new ApolloServer({
     typeDefs,
     resolvers,
-    context: ({ req }) => {
+    context: async ({ req }) => {
       const token = req.headers.authorization || '';
-      const user = getUserFromToken(token);
-      return { user };
+      const user = await getUserFromToken(token);
+
+      return { user, req };
     },
   });
 

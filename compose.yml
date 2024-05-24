@@ -13,5 +13,24 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
+  server:
+    build: .
+    command: ts-node-dev --respawn src/index.ts
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - "4000:4000"
+    environment:
+      - DB_USER=myuser
+      - DB_PASSWORD=mypassword
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=mydatabase
+      - SERVER_PORT=4000
+      - JWT_SECRET=mysecret
+    depends_on:
+      - postgres
+
 volumes:
   postgres_data:
