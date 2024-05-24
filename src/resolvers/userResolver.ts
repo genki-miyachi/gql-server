@@ -4,6 +4,9 @@ import jwt from 'jsonwebtoken';
 import pool from '../utils/db';
 import { JWT_SECRET } from '../config';
 
+const ACCESS_TOKEN_EXPIRY = '15m';  // アクセストークンの有効期限
+const REFRESH_TOKEN_EXPIRY = '7d';  // リフレッシュトークンの有効期限
+
 const resolvers: IResolvers = {
   Query: {
     users: async (_: any, __: any, context: any) => {
@@ -32,10 +35,36 @@ const resolvers: IResolvers = {
       if (!user) throw new Error('No user with that email');
       const valid = await bcrypt.compare(password, user.password);
       if (!valid) throw new Error('Incorrect password');
-      const token = jwt.sign({ id: user.id, username: user.username, email: user.email }, JWT_SECRET as string, {
-        expiresIn: '1h',
+
+      const accessToken = jwt.sign({ id: user.id, username: user.username, email: user.email }, JWT_SECRET as string, {
+        expiresIn: ACCESS_TOKEN_EXPIRY,
       });
-      return token;
+
+      const refreshToken = jwt.sign({ id: user.id }, JWT_SECRET as string, {
+        expiresIn: REFRESH_TOKEN_EXPIRY,
+      });
+
+      // リフレッシュトークンをDBに保存
+      await pool.query('INSERT INTO refresh_tokens (token, user_id) VALUES ($1, $2)', [refreshToken, user.id]);
+
+      return { accessToken, refreshToken };
+    },
+    logout: async (_: any, __: any, context: any) => {
+      if (!context.user) throw new Error('Not authenticated');
+      const refreshToken = context.req.headers.authorization?.split(' ')[1] || '';
+      await pool.query('DELETE FROM refresh_tokens WHERE token = $1', [refreshToken]);
+      return true;
+    },
+    refreshToken: async (_: any, { token }: any) => {
+      const res = await pool.query('SELECT user_id FROM refresh_tokens WHERE token = $1', [token]);
+      if (res.rowCount === 0) throw new Error('Invalid refresh token');
+
+      const userId = res.rows[0].user_id;
+      const accessToken = jwt.sign({ id: userId }, JWT_SECRET as string, {
+        expiresIn: ACCESS_TOKEN_EXPIRY,
+      });
+
+      return { accessToken };
     },
   },
 };
