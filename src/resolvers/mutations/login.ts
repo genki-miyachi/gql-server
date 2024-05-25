@@ -7,6 +7,7 @@ import { ACCESS_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY } from "../../constants";
 export async function loginResolver(_: any, { email, password }: any):Promise<any> {
   const user = await db('users').where({ email }).first();
   if (!user) throw new Error('No user with that email');
+  
   const valid = await bcrypt.compare(password, user.password);
   if (!valid) throw new Error('Incorrect password');
 

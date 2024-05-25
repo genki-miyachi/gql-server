@@ -8,7 +8,7 @@ import { meResolver } from './queries/me';
 import { registerResolver } from './mutations/register';
 import { loginResolver } from './mutations/login';
 import { logoutResolver } from './mutations/logout';
-import { refreshTokenResolver } from './mutations/refleshToken';
+import { refreshTokenResolver } from './mutations/refreshToken';
 
 const resolvers: IResolvers = {
   Query: {
